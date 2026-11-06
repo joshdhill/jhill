@@ -112,7 +112,7 @@ footer a{color:var(--renew)}
   <p class="prose" style="font-size:13.5px;color:var(--muted);margin-top:14px">General information, not tax or legal advice. QOF rules (timing, the 90% asset test, working-capital safe harbors) are detailed; talk to a tax advisor before you rely on them.</p>
 
   <footer>
-    <p><strong>Sources.</strong> 2027 tract list: <a href="https://www.cdfifund.gov/opportunity-zones">CDFI Fund Opportunity Zones Resources</a>, Nov. 5, 2026 designated list. Announcement: <a href="https://www.irs.gov/newsroom/treasury-irs-announce-opportunity-zones-designations-for-over-6500-communities-across-america">IRS IR-2026-132</a>. Tract boundaries: U.S. Census Bureau cartographic boundary files (2020 tracts for 2027 zones, 2010 tracts for 2018 zones, which is the geography each round used). Basemap © OpenStreetMap contributors © CARTO.</p>
+    <p><strong>Sources.</strong> 2027 tract list: <a href="https://www.cdfifund.gov/opportunity-zones">CDFI Fund Opportunity Zones Resources</a>, Nov. 5, 2026 designated list. Announcement: <a href="https://www.irs.gov/newsroom/treasury-irs-announce-opportunity-zones-designations-for-over-6500-communities-across-america">IRS IR-2026-132</a>. Tract boundaries: U.S. Census Bureau cartographic boundary files (2020 tracts for 2027 zones, 2010 tracts for 2018 zones, which is the geography each round used). Basemap © Esri, HERE, Garmin, © OpenStreetMap contributors.</p>
     <p><strong>Notes.</strong> Tract 136 (2020) is shown as new, though it looks like the renumbered successor to 2018 tracts 136.01 and 136.02. "Renewed" means the same tract number is on both lists; 2010 and 2020 boundaries can differ slightly. The 2018 layer covers Davidson County only. Always confirm an address with the official CDFI Fund map before investing.</p>
   </footer>
 </main>
@@ -134,9 +134,11 @@ document.getElementById('stats').innerHTML=
   <div class="stat"><b style="color:${COLORS.renewed}">${st('renewed')}</b><span>renewed from 2018</span></div>
   <div class="stat"><b style="color:${COLORS.exp||COLORS.expiring}">${st('expiring')}</b><span>2018 zones ending 2028</span></div>`;
 
-const map=L.map('map',{zoomControl:true,scrollWheelZoom:true,tap:true});
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
-  maxZoom:19,subdomains:'abcd',attribution:'© OpenStreetMap contributors © CARTO'}).addTo(map);
+const map=L.map('map',{zoomControl:true,scrollWheelZoom:true,maxZoom:16}).setView([36.16,-86.6],10);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{
+  maxZoom:16,attribution:'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors'}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{
+  maxZoom:16,pane:'shadowPane'}).addTo(map);
 
 L.geoJSON(COUNTIES,{style:{color:'#6b7785',weight:1.5,dashArray:'4 4',fill:false},interactive:false}).addTo(map);
 const countyLabels=L.layerGroup().addTo(map);
@@ -155,7 +157,10 @@ L.geoJSON(OZ,{style,onEachFeature:(f,l)=>{
 ['expiring','renewed','new'].forEach(s=>groups[s].addTo(map));
 
 const all=L.featureGroup(Object.values(groups));
-map.fitBounds(groups.new.getBounds().extend(groups.renewed.getBounds()).extend(groups.expiring.getBounds()),{padding:[20,20]});
+const home=L.latLngBounds(groups.new.getBounds()).extend(groups.renewed.getBounds()).extend(groups.expiring.getBounds());
+function fitHome(){map.invalidateSize();map.fitBounds(home,{padding:[20,20],maxZoom:12});}
+fitHome();window.addEventListener('load',fitHome);setTimeout(fitHome,400);
+let fitted=false;new ResizeObserver(()=>{map.invalidateSize();if(!fitted&&map.getSize().y>0){fitted=true;fitHome();}}).observe(document.getElementById('map'));
 
 function select(key,zoom){
   const l=layers[key];if(!l)return;const p=l.feature.properties;
