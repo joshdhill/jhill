@@ -159,8 +159,12 @@ L.geoJSON(OZ,{style,onEachFeature:(f,l)=>{
 const all=L.featureGroup(Object.values(groups));
 const home=L.latLngBounds(groups.new.getBounds()).extend(groups.renewed.getBounds()).extend(groups.expiring.getBounds());
 function fitHome(){map.invalidateSize();map.fitBounds(home,{padding:[20,20],maxZoom:12});}
-fitHome();window.addEventListener('load',fitHome);setTimeout(fitHome,400);
-let fitted=false;new ResizeObserver(()=>{map.invalidateSize();if(!fitted&&map.getSize().y>0){fitted=true;fitHome();}}).observe(document.getElementById('map'));
+let touched=false;const mapEl=document.getElementById('map');
+['pointerdown','wheel','touchstart'].forEach(e=>mapEl.addEventListener(e,()=>{touched=true;},{passive:true}));
+function autoFit(){if(!touched&&mapEl.clientHeight>0)fitHome();else map.invalidateSize();}
+autoFit();window.addEventListener('load',autoFit);setTimeout(autoFit,400);setTimeout(autoFit,1500);
+document.addEventListener('visibilitychange',autoFit);
+new ResizeObserver(autoFit).observe(mapEl);
 
 function select(key,zoom){
   const l=layers[key];if(!l)return;const p=l.feature.properties;
@@ -178,7 +182,7 @@ function select(key,zoom){
    <dt>Tract map</dt><dd>${p.status==='expiring'?'2010 census tract':'2020 census tract'}</dd></dl>
    ${p.note?`<div class="note">${p.note}</div>`:''}
    <div style="margin-top:10px"><a href="https://www.google.com/maps/search/?api=1&query=${l.getBounds().getCenter().lat.toFixed(5)},${l.getBounds().getCenter().lng.toFixed(5)}" target="_blank" rel="noopener">Open in Google Maps ↗</a></div>`;
-  panel.classList.add('open');
+  panel.classList.add('open');touched=true;
   panel.querySelector('.x').onclick=()=>{panel.classList.remove('open');if(selected){selected.setStyle(style(selected.feature));selected=null;}};
 }
 
